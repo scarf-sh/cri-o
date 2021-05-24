@@ -545,6 +545,16 @@ func (c *dockerClient) makeRequestToResolvedURLOnce(ctx context.Context, method,
 			return nil, err
 		}
 	}
+
+	if c.client.CheckRedirect == nil {
+		c.client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 10 {
+				return errors.New("stopped after 10 redirects")
+			}
+			return errors.Wrap(c.setupRequestAuth(req, extraScope), "failed to authorize redirect")
+		}
+	}
+
 	logrus.Debugf("%s %s", method, url)
 	res, err := c.client.Do(req)
 	if err != nil {
